@@ -15,11 +15,11 @@ class Player
     {
         // customers list
         var customerList = GetCustomers();
-        customerList.ForEach(c => 
+        customerList.ForEach(c =>
         {
             Console.Error.WriteLine(c);
         });
-        
+
         //kitchen
         var kitchen = GetKitchen();
         Console.Error.WriteLine(kitchen);
@@ -35,7 +35,7 @@ class Player
             var partner = GetCooker();
             // table list
             var tableList = GetTables();
-            tableList.ForEach(t => 
+            tableList.ForEach(t =>
             {
                 Console.Error.WriteLine(t);
             });
@@ -53,14 +53,43 @@ class Player
                 int customerAward = int.Parse(inputs[1]);
             }
 
+            // reponse
+            string reponse = "";
+
             // récupération commande
             var order = customerList.First();
+
+            // locate blueberries
+            if (me.HaveDish())
+            {
+                var blueberry = kitchen.GetBlueberriesLocation();
+                Console.Error.WriteLine(blueberry);
+                if (blueberry != null)
+                {
+                    reponse = "USE " + blueberry.X + " " + blueberry.Y;
+                }
+            }
+            else
+            {
+                // locate dish
+                var dish = kitchen.GetDishLocation();
+                if (dish != null)
+                {
+                    reponse = "USE " + dish.X + " " + dish.Y;
+                }
+            }
+
+            // si rien à faire alors attendre
+            if (string.IsNullOrEmpty(reponse))
+            {
+                reponse = "WAIT";
+            }
 
             // MOVE x y
             // USE x y
             // WAIT
 
-            Console.WriteLine("WAIT");
+            Console.WriteLine(reponse);
         }
     }
     private static Kitchen GetKitchen()
@@ -98,7 +127,7 @@ class Player
                 X = int.Parse(inputs[0]),
                 Y = int.Parse(inputs[1])
             },
-            Item = inputs[0]
+            Item = inputs[2]
         };
     }
     private static List<Table> GetTables()
@@ -119,12 +148,31 @@ class Player
                 Item = inputs[2]
             });
         }
-        return list; 
+        return list;
     }
 }
 public class Kitchen
 {
     public List<string> Lines { get; set; } = new List<string>();
+
+    public Location GetDishLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals('D'))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
 
     public Location GetBlueberriesLocation()
     {
@@ -132,12 +180,31 @@ public class Kitchen
         {
             for (int j = 0; j < Lines[i].Count(); j++)
             {
-                if(Lines[i][j].Equals("B"))
+                if (Lines[i][j].Equals("B"))
                 {
                     return new Location
                     {
-                        X = i,
-                        Y = j
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    public Location GetIcecreamLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals("I"))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
                     };
                 }
             }
@@ -157,7 +224,7 @@ public class Customer
 
     public override string ToString()
     {
-        return "Customer award :" + this.Award+ " item:" + this.Item;
+        return "Customer award :" + this.Award + " item:" + this.Item;
     }
 }
 public class Cooker
@@ -165,9 +232,14 @@ public class Cooker
     public Location Location { get; set; } = new Location();
     public string Item { get; set; }
 
+    public bool HaveDish()
+    {
+        return Item.Equals("DISH");
+    }
+
     public override string ToString()
     {
-        return "Cooker X :" + this.LocationX + " Y:" + this.LocationY + " Item:" + Item;
+        return "Cooker \n\t" + Location.ToString() + " \n\tItem:" + Item;
     }
 }
 public class Table
@@ -177,11 +249,16 @@ public class Table
 
     public override string ToString()
     {
-        return "Table X :" + this.LocationX + " Y:" + this.LocationY + " Item:" + Item;
+        return "Table \n\t" + Location.ToString() + " \n\tItem:" + Item;
     }
 }
 public class Location
 {
     public int X { get; set; }
     public int Y { get; set; }
+
+    public override string ToString()
+    {
+        return "X :" + X + " Y:" + Y;
+    }
 }
