@@ -54,15 +54,15 @@ class Player
             string reponse = "";
 
             // récupération commande
-            var order = customerList.First();
+            var order = customerList.OrderByDescending(c => c.Award).ToList().First();
             // si chef a donner
             if (!me.HaveItem() && order.Completed)
             {
                 customerList.Remove(order);
-                order = customerList.First();
+                order = customerList.OrderByDescending(c => c.Award).ToList().First();
             }
-            // si j'ai recuperer les fraises coupées
-            if(me.HaveDishChoppedStrawberries())
+            // si j'ai recuperer les fraises coupées ou il y en as plus de dispo
+            if(me.HaveDishChoppedStrawberries() || tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null )
             {
                 ChoppedStrawBerryLocation = null;
             }
@@ -482,6 +482,11 @@ public class Table
 {
     public Location Location { get; set; } = new Location();
     public string Item { get; set; }
+
+    public bool HaveChoppedStrawberries()
+    {
+        return Item.Equals("CHOPPED_STRAWBERRIES");   
+    }
 
     public override string ToString()
     {
