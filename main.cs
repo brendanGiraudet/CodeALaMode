@@ -11,6 +11,8 @@ using System.Collections.Generic;
  **/
 class Player
 {
+    public static Location ChoppedStrawBerryLocation { get; set; }
+
     static void Main(string[] args)
     {
         // customers list
@@ -30,15 +32,10 @@ class Player
             int turnsRemaining = int.Parse(Console.ReadLine());
             // me
             var me = GetCooker();
-            Console.Error.WriteLine(me);
             // partner
             var partner = GetCooker();
             // table list
             var tableList = GetTables();
-            tableList.ForEach(t =>
-            {
-                Console.Error.WriteLine(t);
-            });
 
             // Pas dans cette ligue
             string[] inputs;
@@ -58,40 +55,105 @@ class Player
 
             // récupération commande
             var order = customerList.First();
+            // si chef a donner
+            if (!me.HaveItem() && order.Completed)
+            {
+                customerList.Remove(order);
+                order = customerList.First();
+            }
 
-            
-            if (me.HaveItem())
+            Console.Error.WriteLine(order);
+            Console.Error.WriteLine(me);
+
+            // locate chopped strawberries
+            /*  si je n'ai pas de location de fraise coupée
+                et qu'il en faut pour la commande
+            */
+            Console.Error.WriteLine(order.NeedChoppedStrawberries());
+            Console.Error.WriteLine(ChoppedStrawBerryLocation);
+            if (order.NeedChoppedStrawberries() && ChoppedStrawBerryLocation == null && !me.HaveChoppedStrawberries() && !me.HaveDishChoppedStrawberries())
+            {
+                // rechercher les fraises
+                if (!me.HaveDishStrawberries())
+                {
+                    var strawberries = kitchen.GetStrawberriesLocation();
+                    if (strawberries != null)
+                    {
+                        reponse = "USE " + strawberries.X + " " + strawberries.Y;
+                    }
+                }
+                // rechercher planche à découper
+                else if (!me.HaveChoppedStrawberries())
+                {
+                    var choppedBoard = kitchen.GetChoppingBoardLocation();
+                    if (choppedBoard != null)
+                    {
+                        reponse = "USE " + choppedBoard.X + " " + choppedBoard.Y;
+                    }
+                }
+            }
+            else if (me.HaveItem())
             {
                 //locate window
-                if(me.HaveDishBlueberryIcecream())
+                if (me.HaveCompletedOrder(order))
                 {
                     var window = kitchen.GetWindowLocation();
-                    Console.Error.WriteLine(window);
                     if (window != null)
                     {
                         reponse = "USE " + window.X + " " + window.Y;
+                        order.Completed = true;
                     }
                 }
-                else
+
+                // déposer fraises coupées à coté de l'assiette
+                if(me.HaveChoppedStrawberries())
                 {
-                    // locate icecream
-                    if (me.HaveDishBlueberry())
+                    var table = kitchen.GetAvailableTableLocationAroundDish();
+                    if (table != null)
                     {
-                        var icecream = kitchen.GetIcecreamLocation();
-                        Console.Error.WriteLine(icecream);
-                        if (icecream != null)
-                        {
-                            reponse = "USE " + icecream.X + " " + icecream.Y;
-                        }
+                        reponse = "USE " + table.X + " " + table.Y;
+                        ChoppedStrawBerryLocation = table;
                     }
-                    else
+                }
+
+                // s'il n'y a rien à faire alors aller chercher élément
+                if (string.IsNullOrEmpty(reponse))
+                {
+                    // récupération des produits à faire
+                    var orderedItem = order.Item.Split('-').ToList();
+                    var item = orderedItem.Where(i => !me.Item.Contains(i) && !i.Equals("DISH")).FirstOrDefault();
+                    if (item != null)
                     {
-                        // locate blueberries
-                        var blueberry = kitchen.GetBlueberriesLocation();
-                        Console.Error.WriteLine(blueberry);
-                        if (blueberry != null)
+                        switch (item)
                         {
-                            reponse = "USE " + blueberry.X + " " + blueberry.Y;
+                            // locate icecream
+                            case "ICE_CREAM":
+                                var icecream = kitchen.GetIcecreamLocation();
+                                if (icecream != null)
+                                {
+                                    reponse = "USE " + icecream.X + " " + icecream.Y;
+                                }
+                                break;
+                            // locate blueberries
+                            case "BLUEBERRIES":
+                                var blueberry = kitchen.GetBlueberriesLocation();
+                                if (blueberry != null)
+                                {
+                                    reponse = "USE " + blueberry.X + " " + blueberry.Y;
+                                }
+                                break;
+                            // locate chopped strawberries
+                            case "CHOPPED_STRAWBERRIES":
+                                var choppedStrawberries = ChoppedStrawBerryLocation;
+                                if (choppedStrawberries != null)
+                                {
+                                    reponse = "USE " + choppedStrawberries.X + " " + choppedStrawberries.Y;
+                                    ChoppedStrawBerryLocation = null;
+                                }
+                                break;
+
+                            default:
+                                break;
                         }
                     }
                 }
@@ -201,6 +263,36 @@ public class Kitchen
         return null;
     }
 
+    public Location GetAvailableTableLocationAroundDish()
+    {
+        var dish = GetDishLocation();
+        // table de gauche
+        if (Lines[dish.Y][dish.X - 1].Equals('#'))
+        {
+            dish.X--;
+            return dish;
+        }
+        // table de droite
+        if (Lines[dish.Y][dish.X + 1].Equals('#'))
+        {
+            dish.X++;
+            return dish;
+        }
+        // table du haut
+        if (Lines[dish.Y - 1][dish.X].Equals('#'))
+        {
+            dish.Y--;
+            return dish;
+        }
+        // table du bas
+        if (Lines[dish.Y + 1][dish.X].Equals('#'))
+        {
+            dish.Y++;
+            return dish;
+        }
+        return null;
+    }
+
     public Location GetBlueberriesLocation()
     {
         for (int i = 0; i < Lines.Count(); i++)
@@ -258,6 +350,44 @@ public class Kitchen
         return null;
     }
 
+    public Location GetChoppingBoardLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals('C'))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    public Location GetStrawberriesLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals('S'))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
     public override string ToString()
     {
         return string.Join("  \n", Lines);
@@ -267,10 +397,26 @@ public class Customer
 {
     public int Award { get; set; }
     public string Item { get; set; }
+    public bool Completed { get; set; } = false;
+
+    public bool NeedChoppedStrawberries()
+    {
+        return Item.Split('-').ToList().Contains("CHOPPED_STRAWBERRIES");
+    }
+
+    public bool NeedBlueberries()
+    {
+        return Item.Split('-').ToList().Contains("BLUEBERRIES");
+    }
+
+    public bool NeedIcecream()
+    {
+        return Item.Split('-').ToList().Contains("ICE_CREAM");
+    }
 
     public override string ToString()
     {
-        return "Customer award :" + this.Award + " item:" + this.Item;
+        return "Customer \n\taward :" + this.Award + "\t item:" + this.Item;
     }
 }
 public class Cooker
@@ -285,22 +431,42 @@ public class Cooker
 
     public bool HaveItem()
     {
-        return (HaveDish() || HaveDishBlueberry() || HaveDishBlueberryIcecream());
+        return (!string.IsNullOrEmpty(Item) && !Item.Equals("NONE"));
     }
 
     public bool HaveDishBlueberry()
     {
-        return Item.Equals("DISH-BLUEBERRIES");
+        return Item.Split('-').ToList().Contains("BLUEBERRIES");
     }
 
     public bool HaveDishIcecream()
     {
-        return Item.Equals("DISH-ICE_CREAM");
+        return Item.Split('-').ToList().Contains("ICE_CREAM");
     }
 
     public bool HaveDishBlueberryIcecream()
     {
         return Item.Equals("DISH-BLUEBERRIES-ICE_CREAM");
+    }
+
+    public bool HaveDishStrawberries()
+    {
+        return Item.Split('-').ToList().Contains("STRAWBERRIES");
+    }
+
+    public bool HaveDishChoppedStrawberries()
+    {
+        return Item.Split('-').ToList().Contains("CHOPPED_STRAWBERRIES");
+    }
+
+    public bool HaveChoppedStrawberries()
+    {
+        return Item.Equals("CHOPPED_STRAWBERRIES");
+    }
+
+    public bool HaveCompletedOrder(Customer order)
+    {
+        return Item.Equals(order.Item);
     }
 
     public override string ToString()
