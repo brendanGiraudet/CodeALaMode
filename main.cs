@@ -16,7 +16,7 @@ class Player
     static void Main(string[] args)
     {
         // customers list
-        var customerList = GetCustomers();
+        var customerList = GetCustomers().OrderByDescending(c => c.Award).ToList();
         customerList.ForEach(c =>
         {
             Console.Error.WriteLine(c);
@@ -54,17 +54,13 @@ class Player
             string reponse = "";
 
             // récupération commande
-            var order = customerList.OrderByDescending(c => c.Award).ToList().First();
+            var order = customerList.First();
             // si chef a donner
             if (!me.HaveItem() && order.Completed)
             {
+                Console.Error.WriteLine("finish : " + order);
                 customerList.Remove(order);
-                order = customerList.OrderByDescending(c => c.Award).ToList().First();
-            }
-            // si j'ai recuperer les fraises coupées ou il y en as plus de dispo
-            if(me.HaveDishChoppedStrawberries() || tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null )
-            {
-                ChoppedStrawBerryLocation = null;
+                order = customerList.First();
             }
 
             Console.Error.WriteLine(order);
@@ -76,7 +72,7 @@ class Player
             */
             Console.Error.WriteLine(order.NeedChoppedStrawberries());
             Console.Error.WriteLine(ChoppedStrawBerryLocation);
-            if (order.NeedChoppedStrawberries() && ChoppedStrawBerryLocation == null && !me.HaveChoppedStrawberries() && !me.HaveDishChoppedStrawberries())
+            if (order.NeedChoppedStrawberries() && tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveChoppedStrawberries() && !me.HaveDishChoppedStrawberries())
             {
                 // rechercher les fraises
                 if (!me.HaveDishStrawberries())
@@ -117,7 +113,6 @@ class Player
                     if (table != null)
                     {
                         reponse = "USE " + table.X + " " + table.Y;
-                        ChoppedStrawBerryLocation = table;
                     }
                 }
 
@@ -149,10 +144,10 @@ class Player
                                 break;
                             // locate chopped strawberries
                             case "CHOPPED_STRAWBERRIES":
-                                var choppedStrawberries = ChoppedStrawBerryLocation;
-                                if (choppedStrawberries != null)
+                                var choppedStrawberriesTable = tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES"));
+                                if (choppedStrawberriesTable != null)
                                 {
-                                    reponse = "USE " + choppedStrawberries.X + " " + choppedStrawberries.Y;
+                                    reponse = "USE " + choppedStrawberriesTable.Location.X + " " + choppedStrawberriesTable.Location.Y;
                                 }
                                 break;
 
