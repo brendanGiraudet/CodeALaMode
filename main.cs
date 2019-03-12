@@ -61,6 +61,11 @@ class Player
                 customerList.Remove(order);
                 order = customerList.First();
             }
+            // si j'ai recuperer les fraises coupées
+            if(me.HaveDishChoppedStrawberries())
+            {
+                ChoppedStrawBerryLocation = null;
+            }
 
             Console.Error.WriteLine(order);
             Console.Error.WriteLine(me);
@@ -148,7 +153,6 @@ class Player
                                 if (choppedStrawberries != null)
                                 {
                                     reponse = "USE " + choppedStrawberries.X + " " + choppedStrawberries.Y;
-                                    ChoppedStrawBerryLocation = null;
                                 }
                                 break;
 
