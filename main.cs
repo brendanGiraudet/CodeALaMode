@@ -59,14 +59,41 @@ class Player
             // récupération commande
             var order = customerList.First();
 
-            // locate blueberries
-            if (me.HaveDish())
+            
+            if (me.HaveItem())
             {
-                var blueberry = kitchen.GetBlueberriesLocation();
-                Console.Error.WriteLine(blueberry);
-                if (blueberry != null)
+                //locate window
+                if(me.HaveDishBlueberryIcecream())
                 {
-                    reponse = "USE " + blueberry.X + " " + blueberry.Y;
+                    var window = kitchen.GetWindowLocation();
+                    Console.Error.WriteLine(window);
+                    if (window != null)
+                    {
+                        reponse = "USE " + window.X + " " + window.Y;
+                    }
+                }
+                else
+                {
+                    // locate icecream
+                    if (me.HaveDishBlueberry())
+                    {
+                        var icecream = kitchen.GetIcecreamLocation();
+                        Console.Error.WriteLine(icecream);
+                        if (icecream != null)
+                        {
+                            reponse = "USE " + icecream.X + " " + icecream.Y;
+                        }
+                    }
+                    else
+                    {
+                        // locate blueberries
+                        var blueberry = kitchen.GetBlueberriesLocation();
+                        Console.Error.WriteLine(blueberry);
+                        if (blueberry != null)
+                        {
+                            reponse = "USE " + blueberry.X + " " + blueberry.Y;
+                        }
+                    }
                 }
             }
             else
@@ -180,7 +207,7 @@ public class Kitchen
         {
             for (int j = 0; j < Lines[i].Count(); j++)
             {
-                if (Lines[i][j].Equals("B"))
+                if (Lines[i][j].Equals('B'))
                 {
                     return new Location
                     {
@@ -199,7 +226,26 @@ public class Kitchen
         {
             for (int j = 0; j < Lines[i].Count(); j++)
             {
-                if (Lines[i][j].Equals("I"))
+                if (Lines[i][j].Equals('I'))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    public Location GetWindowLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals('W'))
                 {
                     return new Location
                     {
@@ -235,6 +281,26 @@ public class Cooker
     public bool HaveDish()
     {
         return Item.Equals("DISH");
+    }
+
+    public bool HaveItem()
+    {
+        return (HaveDish() || HaveDishBlueberry() || HaveDishBlueberryIcecream());
+    }
+
+    public bool HaveDishBlueberry()
+    {
+        return Item.Equals("DISH-BLUEBERRIES");
+    }
+
+    public bool HaveDishIcecream()
+    {
+        return Item.Equals("DISH-ICE_CREAM");
+    }
+
+    public bool HaveDishBlueberryIcecream()
+    {
+        return Item.Equals("DISH-BLUEBERRIES-ICE_CREAM");
     }
 
     public override string ToString()
