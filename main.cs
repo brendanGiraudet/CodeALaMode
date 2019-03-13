@@ -30,7 +30,7 @@ class Player
             // partner
             var partner = GetCooker();
             // table list
-            var tableList = GetTables();
+            kitchen.tables = GetTables();
 
             string[] inputs;
             inputs = Console.ReadLine().Split(' ');
@@ -52,17 +52,19 @@ class Player
 
             Console.Error.WriteLine(order);
             Console.Error.WriteLine(me);
-            tableList.ForEach(t =>
+            kitchen.tables.ForEach(t =>
             {
                 Console.Error.WriteLine(t);
             });
+            Console.Error.WriteLine(kitchen);
+
 
             /*
              * Si une commande a besoin de croissant
              * et je n'ai pas d'assiette de croissant dans les mains
              * et qu'il n'y a pas de table aillant un croissant
              */
-            if (order.NeedCroissant() && !me.HaveDishCroissant() && tableList.Find(t => t.Item.Equals("CROISSANT")) == null && !me.HaveStrawberries() && !me.HaveChoppedStrawberries())
+            if (order.NeedCroissant() && !me.HaveDishCroissant() && kitchen.tables.Find(t => t.Item.Equals("CROISSANT")) == null && !me.HaveStrawberries() && !me.HaveChoppedStrawberries())
             {
                 // déposer assiette si j'ai 
                 if (me.HaveDish())
@@ -112,10 +114,10 @@ class Player
              * et qu'il n'y a pas de table aillant de fraises coupées
              * et je n'ai pas d'assiette de fraises coupées dans les mains
             */
-            else if (order.NeedChoppedStrawberries() && tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveDishChoppedStrawberries())
+            else if (order.NeedChoppedStrawberries() && kitchen.tables.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveDishChoppedStrawberries())
             {
                 // déposer assiette si j'ai 
-                if(me.HaveDish())
+                if (me.HaveDish())
                 {
                     var table = kitchen.GetAvailableTableLocationAroundStrawberries();
                     if (table != null)
@@ -194,7 +196,7 @@ class Player
                                 break;
                             // locate chopped strawberries
                             case "CHOPPED_STRAWBERRIES":
-                                var choppedStrawberriesTable = tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES"));
+                                var choppedStrawberriesTable = kitchen.tables.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES"));
                                 if (choppedStrawberriesTable != null)
                                 {
                                     reponse = "USE " + choppedStrawberriesTable.Location.X + " " + choppedStrawberriesTable.Location.Y;
@@ -202,7 +204,7 @@ class Player
                                 break;
                             // locate croissant
                             case "CROISSANT":
-                                var croissantTable = tableList.Find(t => t.Item.Equals("CROISSANT"));
+                                var croissantTable = kitchen.tables.Find(t => t.Item.Equals("CROISSANT"));
                                 if (croissantTable != null)
                                 {
                                     reponse = "USE " + croissantTable.Location.X + " " + croissantTable.Location.Y;
@@ -218,8 +220,8 @@ class Player
             else
             {
                 // locate dish dropped
-                var dishDropped = tableList.Find(t => t.Item.Equals("DISH"));
-                if(dishDropped != null)
+                var dishDropped = kitchen.tables.Find(t => t.Item.Equals("DISH"));
+                if (dishDropped != null)
                 {
                     reponse = "USE " + dishDropped.Location.X + " " + dishDropped.Location.Y;
                 }
@@ -325,6 +327,7 @@ class Player
 public class Kitchen
 {
     public List<string> Lines { get; set; } = new List<string>();
+    public List<Table> tables { get; set; } = new List<Table>();
 
     public Location GetDishLocation()
     {
@@ -387,25 +390,25 @@ public class Kitchen
     {
         var dish = GetStrawberriesLocation();
         // table de gauche
-        if (Lines[dish.Y][dish.X - 1].Equals('#'))
+        if (Lines[dish.Y][dish.X - 1].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X - 1) && t.Location.Y.Equals(dish.Y)) == null)
         {
             dish.X--;
             return dish;
         }
         // table de droite
-        if (Lines[dish.Y][dish.X + 1].Equals('#'))
+        if (Lines[dish.Y][dish.X + 1].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X + 1) && t.Location.Y.Equals(dish.Y)) == null)
         {
             dish.X++;
             return dish;
         }
         // table du haut
-        if (Lines[dish.Y - 1][dish.X].Equals('#'))
+        if (Lines[dish.Y - 1][dish.X].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X) && t.Location.Y.Equals(dish.Y - 1)) == null)
         {
             dish.Y--;
             return dish;
         }
         // table du bas
-        if (Lines[dish.Y + 1][dish.X].Equals('#'))
+        if (Lines[dish.Y + 1][dish.X].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X) && t.Location.Y.Equals(dish.Y + 1)) == null)
         {
             dish.Y++;
             return dish;
@@ -416,25 +419,25 @@ public class Kitchen
     {
         var dish = GetDoughLocation();
         // table de gauche
-        if (Lines[dish.Y][dish.X - 1].Equals('#'))
+        if (Lines[dish.Y][dish.X - 1].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X - 1) && t.Location.Y.Equals(dish.Y)) == null)
         {
             dish.X--;
             return dish;
         }
         // table de droite
-        if (Lines[dish.Y][dish.X + 1].Equals('#'))
+        if (Lines[dish.Y][dish.X + 1].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X + 1) && t.Location.Y.Equals(dish.Y)) == null)
         {
             dish.X++;
             return dish;
         }
         // table du haut
-        if (Lines[dish.Y - 1][dish.X].Equals('#'))
+        if (Lines[dish.Y - 1][dish.X].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X) && t.Location.Y.Equals(dish.Y - 1)) == null)
         {
             dish.Y--;
             return dish;
         }
         // table du bas
-        if (Lines[dish.Y + 1][dish.X].Equals('#'))
+        if (Lines[dish.Y + 1][dish.X].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X) && t.Location.Y.Equals(dish.Y + 1)) == null)
         {
             dish.Y++;
             return dish;
@@ -446,25 +449,25 @@ public class Kitchen
     {
         var dish = GetDishLocation();
         // table de gauche
-        if (Lines[dish.Y][dish.X - 1].Equals('#'))
+        if (Lines[dish.Y][dish.X - 1].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X - 1) && t.Location.Y.Equals(dish.Y)) == null)
         {
             dish.X--;
             return dish;
         }
         // table de droite
-        if (Lines[dish.Y][dish.X + 1].Equals('#'))
+        if (Lines[dish.Y][dish.X + 1].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X + 1) && t.Location.Y.Equals(dish.Y)) == null)
         {
             dish.X++;
             return dish;
         }
         // table du haut
-        if (Lines[dish.Y - 1][dish.X].Equals('#'))
+        if (Lines[dish.Y - 1][dish.X].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X) && t.Location.Y.Equals(dish.Y - 1)) == null)
         {
             dish.Y--;
             return dish;
         }
         // table du bas
-        if (Lines[dish.Y + 1][dish.X].Equals('#'))
+        if (Lines[dish.Y + 1][dish.X].Equals('#') && tables.Find(t => t.Location.X.Equals(dish.X) && t.Location.Y.Equals(dish.Y + 1)) == null)
         {
             dish.Y++;
             return dish;
