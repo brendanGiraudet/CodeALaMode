@@ -17,14 +17,9 @@ class Player
     {
         // customers list
         var customerList = GetCustomers().OrderByDescending(c => c.Award).ToList();
-        customerList.ForEach(c =>
-        {
-            Console.Error.WriteLine(c);
-        });
 
         //kitchen
         var kitchen = GetKitchen();
-        Console.Error.WriteLine(kitchen);
 
         // game loop
         while (true)
@@ -37,54 +32,109 @@ class Player
             // table list
             var tableList = GetTables();
 
-            // Pas dans cette ligue
             string[] inputs;
             inputs = Console.ReadLine().Split(' ');
             string ovenContents = inputs[0]; // ignore until wood 1 league
             int ovenTimer = int.Parse(inputs[1]);
-            int numCustomers = int.Parse(Console.ReadLine()); // the number of customers currently waiting for food
-            for (int i = 0; i < numCustomers; i++)
-            {
-                inputs = Console.ReadLine().Split(' ');
-                string customerItem = inputs[0];
-                int customerAward = int.Parse(inputs[1]);
-            }
+            var customerWaitingList = GetCustomersWaiting().OrderByDescending(c => c.Award).ToList();
 
             // reponse
             string reponse = "";
 
             // récupération commande
-            var order = customerList.First();
+            var order = customerWaitingList.First();
             // si chef a donner
             if (!me.HaveItem() && order.Completed)
             {
-                Console.Error.WriteLine("finish : " + order);
                 customerList.Remove(order);
                 order = customerList.First();
             }
 
             Console.Error.WriteLine(order);
             Console.Error.WriteLine(me);
-
-            // locate chopped strawberries
-            /*  si je n'ai pas de location de fraise coupée
-                et qu'il en faut pour la commande
-            */
-            Console.Error.WriteLine(order.NeedChoppedStrawberries());
-            Console.Error.WriteLine(ChoppedStrawBerryLocation);
-            if (order.NeedChoppedStrawberries() && tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveChoppedStrawberries() && !me.HaveDishChoppedStrawberries())
+            tableList.ForEach(t =>
             {
-                // rechercher les fraises
-                if (!me.HaveDishStrawberries())
+                Console.Error.WriteLine(t);
+            });
+
+            /*
+             * Si une commande a besoin de croissant
+             * et je n'ai pas d'assiette de croissant dans les mains
+             * et qu'il n'y a pas de table aillant un croissant
+             */
+            if (order.NeedCroissant() && !me.HaveDishCroissant() && tableList.Find(t => t.Item.Equals("CROISSANT")) == null && !me.HaveStrawberries() && !me.HaveChoppedStrawberries())
+            {
+                // déposer assiette si j'ai 
+                if (me.HaveDish())
                 {
-                    var strawberries = kitchen.GetStrawberriesLocation();
-                    if (strawberries != null)
+                    var table = kitchen.GetAvailableTableLocationAroundDough();
+                    if (table != null)
                     {
-                        reponse = "USE " + strawberries.X + " " + strawberries.Y;
+                        reponse = "USE " + table.X + " " + table.Y;
+                    }
+
+                }
+                // deposer croissant a coté assiette
+                if (me.HaveCroissant())
+                {
+                    var croissantTable = kitchen.GetAvailableTableLocationAroundDish();
+                    if (croissantTable != null)
+                    {
+                        reponse = "USE " + croissantTable.X + " " + croissantTable.Y;
+                    }
+                }
+                // si le four contient ma pate alors attendre
+                else if (ovenContents.Equals("DOUGH"))
+                {
+                    reponse = "WAIT";
+                }
+                // si j'ai rien au four et que j'ai de la pate alors mettre au four
+                else if ((ovenContents.Equals("NONE") && me.HaveDough()) || ovenContents.Equals("CROISSANT"))
+                {
+                    var oven = kitchen.GetOvenLocation();
+                    if (oven != null)
+                    {
+                        reponse = "USE " + oven.X + " " + oven.Y;
+                    }
+                }
+                // si je n'ai pas de pate alors aller chercher la pate
+                else
+                {
+                    var dough = kitchen.GetDoughLocation();
+                    if (dough != null)
+                    {
+                        reponse = "USE " + dough.X + " " + dough.Y;
+                    }
+                }
+            }
+            /*
+             * si j'ai une commande de fraises coupées
+             * et qu'il n'y a pas de table aillant de fraises coupées
+             * et je n'ai pas d'assiette de fraises coupées dans les mains
+            */
+            else if (order.NeedChoppedStrawberries() && tableList.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveDishChoppedStrawberries())
+            {
+                // déposer assiette si j'ai 
+                if(me.HaveDish())
+                {
+                    var table = kitchen.GetAvailableTableLocationAroundStrawberries();
+                    if (table != null)
+                    {
+                        reponse = "USE " + table.X + " " + table.Y;
+                    }
+
+                }
+                // deposer fraises coupées a coté assiette
+                if (me.HaveChoppedStrawberries())
+                {
+                    var table = kitchen.GetAvailableTableLocationAroundDish();
+                    if (table != null)
+                    {
+                        reponse = "USE " + table.X + " " + table.Y;
                     }
                 }
                 // rechercher planche à découper
-                else if (!me.HaveChoppedStrawberries())
+                else if (me.HaveStrawberries())
                 {
                     var choppedBoard = kitchen.GetChoppingBoardLocation();
                     if (choppedBoard != null)
@@ -92,7 +142,17 @@ class Player
                         reponse = "USE " + choppedBoard.X + " " + choppedBoard.Y;
                     }
                 }
+                // rechercher les fraises
+                else
+                {
+                    var strawberries = kitchen.GetStrawberriesLocation();
+                    if (strawberries != null)
+                    {
+                        reponse = "USE " + strawberries.X + " " + strawberries.Y;
+                    }
+                }
             }
+            // si j'ai quelque chose dans les mains
             else if (me.HaveItem())
             {
                 //locate window
@@ -106,17 +166,7 @@ class Player
                     }
                 }
 
-                // déposer fraises coupées à coté de l'assiette
-                if(me.HaveChoppedStrawberries())
-                {
-                    var table = kitchen.GetAvailableTableLocationAroundDish();
-                    if (table != null)
-                    {
-                        reponse = "USE " + table.X + " " + table.Y;
-                    }
-                }
-
-                // s'il n'y a rien à faire alors aller chercher élément
+                // si commande pas fini alors aller chercher élément
                 if (string.IsNullOrEmpty(reponse))
                 {
                     // récupération des produits à faire
@@ -150,6 +200,14 @@ class Player
                                     reponse = "USE " + choppedStrawberriesTable.Location.X + " " + choppedStrawberriesTable.Location.Y;
                                 }
                                 break;
+                            // locate croissant
+                            case "CROISSANT":
+                                var croissantTable = tableList.Find(t => t.Item.Equals("CROISSANT"));
+                                if (croissantTable != null)
+                                {
+                                    reponse = "USE " + croissantTable.Location.X + " " + croissantTable.Location.Y;
+                                }
+                                break;
 
                             default:
                                 break;
@@ -159,11 +217,20 @@ class Player
             }
             else
             {
-                // locate dish
-                var dish = kitchen.GetDishLocation();
-                if (dish != null)
+                // locate dish dropped
+                var dishDropped = tableList.Find(t => t.Item.Equals("DISH"));
+                if(dishDropped != null)
                 {
-                    reponse = "USE " + dish.X + " " + dish.Y;
+                    reponse = "USE " + dishDropped.Location.X + " " + dishDropped.Location.Y;
+                }
+                else
+                {
+                    // dish washer 
+                    var dish = kitchen.GetDishLocation();
+                    if (dish != null)
+                    {
+                        reponse = "USE " + dish.X + " " + dish.Y;
+                    }
                 }
             }
 
@@ -180,6 +247,22 @@ class Player
             Console.WriteLine(reponse);
         }
     }
+    private static List<Customer> GetCustomersWaiting()
+    {
+        var list = new List<Customer>();
+        int numCustomers = int.Parse(Console.ReadLine()); // the number of customers currently waiting for food
+        for (int i = 0; i < numCustomers; i++)
+        {
+            var inputs = Console.ReadLine().Split(' ');
+            list.Add(new Customer
+            {
+                Item = inputs[0],
+                Award = int.Parse(inputs[1])
+            });
+        }
+        return list;
+    }
+
     private static Kitchen GetKitchen()
     {
         var kitchen = new Kitchen();
@@ -258,6 +341,103 @@ public class Kitchen
                     };
                 }
             }
+        }
+        return null;
+    }
+
+    public Location GetDoughLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals('H'))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    public Location GetOvenLocation()
+    {
+        for (int i = 0; i < Lines.Count(); i++)
+        {
+            for (int j = 0; j < Lines[i].Count(); j++)
+            {
+                if (Lines[i][j].Equals('O'))
+                {
+                    return new Location
+                    {
+                        X = j,
+                        Y = i
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    public Location GetAvailableTableLocationAroundStrawberries()
+    {
+        var dish = GetStrawberriesLocation();
+        // table de gauche
+        if (Lines[dish.Y][dish.X - 1].Equals('#'))
+        {
+            dish.X--;
+            return dish;
+        }
+        // table de droite
+        if (Lines[dish.Y][dish.X + 1].Equals('#'))
+        {
+            dish.X++;
+            return dish;
+        }
+        // table du haut
+        if (Lines[dish.Y - 1][dish.X].Equals('#'))
+        {
+            dish.Y--;
+            return dish;
+        }
+        // table du bas
+        if (Lines[dish.Y + 1][dish.X].Equals('#'))
+        {
+            dish.Y++;
+            return dish;
+        }
+        return null;
+    }
+    public Location GetAvailableTableLocationAroundDough()
+    {
+        var dish = GetDoughLocation();
+        // table de gauche
+        if (Lines[dish.Y][dish.X - 1].Equals('#'))
+        {
+            dish.X--;
+            return dish;
+        }
+        // table de droite
+        if (Lines[dish.Y][dish.X + 1].Equals('#'))
+        {
+            dish.X++;
+            return dish;
+        }
+        // table du haut
+        if (Lines[dish.Y - 1][dish.X].Equals('#'))
+        {
+            dish.Y--;
+            return dish;
+        }
+        // table du bas
+        if (Lines[dish.Y + 1][dish.X].Equals('#'))
+        {
+            dish.Y++;
+            return dish;
         }
         return null;
     }
@@ -403,6 +583,11 @@ public class Customer
         return Item.Split('-').ToList().Contains("CHOPPED_STRAWBERRIES");
     }
 
+    public bool NeedCroissant()
+    {
+        return Item.Split('-').ToList().Contains("CROISSANT");
+    }
+
     public bool NeedBlueberries()
     {
         return Item.Split('-').ToList().Contains("BLUEBERRIES");
@@ -435,12 +620,27 @@ public class Cooker
 
     public bool HaveDishBlueberry()
     {
-        return Item.Split('-').ToList().Contains("BLUEBERRIES");
+        return Item.Split('-').ToList().Contains("BLUEBERRIES") && Item.Split('-').ToList().Contains("DISH");
+    }
+
+    public bool HaveDishCroissant()
+    {
+        return Item.Split('-').ToList().Contains("CROISSANT") && Item.Split('-').ToList().Contains("DISH");
+    }
+
+    public bool HaveCroissant()
+    {
+        return Item.Equals("CROISSANT");
+    }
+
+    public bool HaveDough()
+    {
+        return Item.Equals("DOUGH");
     }
 
     public bool HaveDishIcecream()
     {
-        return Item.Split('-').ToList().Contains("ICE_CREAM");
+        return Item.Split('-').ToList().Contains("ICE_CREAM") && Item.Split('-').ToList().Contains("DISH"); ;
     }
 
     public bool HaveDishBlueberryIcecream()
@@ -448,14 +648,14 @@ public class Cooker
         return Item.Equals("DISH-BLUEBERRIES-ICE_CREAM");
     }
 
-    public bool HaveDishStrawberries()
+    public bool HaveStrawberries()
     {
-        return Item.Split('-').ToList().Contains("STRAWBERRIES");
+        return Item.Equals("STRAWBERRIES");
     }
 
     public bool HaveDishChoppedStrawberries()
     {
-        return Item.Split('-').ToList().Contains("CHOPPED_STRAWBERRIES");
+        return Item.Split('-').ToList().Contains("CHOPPED_STRAWBERRIES") && Item.Split('-').ToList().Contains("DISH"); ;
     }
 
     public bool HaveChoppedStrawberries()
@@ -480,7 +680,7 @@ public class Table
 
     public bool HaveChoppedStrawberries()
     {
-        return Item.Equals("CHOPPED_STRAWBERRIES");   
+        return Item.Equals("CHOPPED_STRAWBERRIES");
     }
 
     public override string ToString()
