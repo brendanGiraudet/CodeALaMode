@@ -77,7 +77,7 @@ class Player
 
                 }
                 // deposer croissant a coté assiette
-                if (me.HaveCroissant())
+                else if (me.HaveCroissant())
                 {
                     var croissantTable = kitchen.GetAvailableTableLocationAroundDish();
                     if (croissantTable != null)
@@ -114,7 +114,8 @@ class Player
              * et qu'il n'y a pas de table aillant de fraises coupées
              * et je n'ai pas d'assiette de fraises coupées dans les mains
             */
-            else if (order.NeedChoppedStrawberries() && kitchen.tables.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveDishChoppedStrawberries())
+            else if ((order.NeedChoppedStrawberries() && kitchen.tables.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) == null && !me.HaveDishChoppedStrawberries()) 
+                || (me.HaveChoppedStrawberries() && kitchen.tables.Find(t => t.Item.Equals("CHOPPED_STRAWBERRIES")) != null))
             {
                 // déposer assiette si j'ai 
                 if (me.HaveDish())
@@ -603,7 +604,7 @@ public class Customer
 
     public override string ToString()
     {
-        return "Customer \n\taward :" + this.Award + "\t item:" + this.Item;
+        return "Customer \n\taward :" + this.Award + "\t item:" + this.Item + "\t complete : " + Completed;
     }
 }
 public class Cooker
